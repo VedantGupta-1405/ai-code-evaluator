@@ -7,7 +7,8 @@ export async function GET() {
 
     const data = await res.json();
 
-    return new Response(JSON.stringify(data), {
+    // ✅ FIX: send only leaderboard array
+    return new Response(JSON.stringify(data.leaderboard), {
       headers: {
         "Content-Type": "application/json",
       },
