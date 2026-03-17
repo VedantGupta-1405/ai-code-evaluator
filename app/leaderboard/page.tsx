@@ -13,7 +13,7 @@ export default function Leaderboard() {
   const fetchLeaderboard = async () => {
     try {
       const res = await fetch(
-        "http://localhost:5678/webhook/leaderboard"
+        "https://enterally-unshedding-raelyn.ngrok-free.dev/webhook/leaderboard"
       );
 
       if (!res.ok) throw new Error("Failed API");

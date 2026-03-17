@@ -10,7 +10,7 @@ export default function TeacherDashboard() {
     const fetchData = async () => {
       try {
         const res = await fetch(
-          "http://localhost:5678/webhook/teacher-dashboard" // ✅ correct for testing
+          "https://enterally-unshedding-raelyn.ngrok-free.dev/webhook/teacher-dashboard" // ✅ correct for testing
         );
 
         if (!res.ok) throw new Error("API failed");
