@@ -11,16 +11,11 @@ export default function Leaderboard() {
   }, []);
 
   const fetchLeaderboard = async () => {
-    try {
-      const res = await fetch("/api/leaderboard"); // ✅ FIXED
-
-      if (!res.ok) throw new Error("Failed API");
-
-      const result = await res.json();
-
-      console.log("API DATA:", result); // debug (remove later)
-
-      setData(result);
+  try {
+    const res = await fetch(
+      "https://enterally-unshedding-raelyn.ngrok-free.dev/webhook/leaderboard",
+      { cache: "no-store" }
+    );
     } catch (err) {
       console.error(err);
       alert("Failed to load leaderboard");
