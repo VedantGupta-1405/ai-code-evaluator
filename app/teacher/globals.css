@@ -1,0 +1,18 @@
+/* ---------- STATS ---------- */
+.stat-card {
+  background: #15171c;
+  border: 1px solid #2a2b32;
+  padding: 18px;
+  border-radius: 10px;
+}
+
+.stat-title {
+  color: #9ca3af;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+}
