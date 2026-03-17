@@ -12,13 +12,14 @@ export default function Leaderboard() {
 
   const fetchLeaderboard = async () => {
     try {
-      const res = await fetch(
-        "https://enterally-unshedding-raelyn.ngrok-free.dev/webhook/leaderboard"
-      );
+      const res = await fetch("/api/leaderboard"); // ✅ FIXED
 
       if (!res.ok) throw new Error("Failed API");
 
       const result = await res.json();
+
+      console.log("API DATA:", result); // debug (remove later)
+
       setData(result);
     } catch (err) {
       console.error(err);
@@ -46,7 +47,7 @@ export default function Leaderboard() {
 
       <div className="max-w-5xl mx-auto px-6 py-10">
 
-        {/* ================= PODIUM ================= */}
+        {/* PODIUM */}
         {!loading && topThree.length > 0 && (
           <div className="flex justify-center items-end gap-6 mb-12">
 
@@ -101,7 +102,7 @@ export default function Leaderboard() {
           </div>
         )}
 
-        {/* ================= TABLE ================= */}
+        {/* TABLE */}
         <div className="bg-[#15171c] border border-gray-800 rounded-xl shadow-md mb-10">
 
           <div className="grid grid-cols-3 px-6 py-4 text-xs uppercase tracking-wider text-gray-400 border-b border-gray-800">
@@ -137,7 +138,7 @@ export default function Leaderboard() {
 
         </div>
 
-        {/* ================= WEAK STUDENTS ================= */}
+        {/* WEAK STUDENTS */}
         {!loading && weakStudents.length > 0 && (
           <div>
             <h2 className="text-sm text-gray-400 mb-4">
@@ -145,7 +146,6 @@ export default function Leaderboard() {
             </h2>
 
             <div className="bg-[#15171c] border border-gray-800 rounded-xl">
-
               {weakStudents.map((item, index) => (
                 <div
                   key={index}
@@ -160,7 +160,6 @@ export default function Leaderboard() {
                   </div>
                 </div>
               ))}
-
             </div>
           </div>
         )}
