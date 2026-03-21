@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5678";
+
 export default function Home() {
   const [form, setForm] = useState({
     student_name: "",
@@ -14,10 +16,15 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
+    if (!form.student_name || !form.roll || !form.problem || !form.code) {
+      alert("Please fill in all fields");
+      return;
+    }
+
     try {
       setLoading(true);
 
-      const res = await fetch("http://localhost:5678/webhook/submit-code", {
+      const res = await fetch(`${API_URL}/webhook/submit-code`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -34,10 +41,9 @@ export default function Home() {
         problem: "",
         code: "",
       });
-
     } catch (err) {
       console.error(err);
-      alert("Something went wrong");
+      alert("Something went wrong. Make sure the backend is running.");
     } finally {
       setLoading(false);
     }
@@ -49,7 +55,11 @@ export default function Home() {
       {/* HEADER */}
       <div className="w-full border-b border-gray-800 px-6 py-4 flex justify-between items-center bg-[#0f1117]">
         <h1 className="text-lg font-semibold">AI Code Evaluator</h1>
-        <span className="text-sm text-gray-400">LeetCode Style</span>
+        <div className="flex gap-4 items-center">
+          <a href="/leaderboard" className="text-sm text-gray-400 hover:text-white transition">Leaderboard</a>
+          <a href="/teacher" className="text-sm text-gray-400 hover:text-white transition">Teacher Dashboard</a>
+          <span className="text-sm text-gray-400">LeetCode Style</span>
+        </div>
       </div>
 
       {/* MAIN CONTENT */}
@@ -71,7 +81,7 @@ export default function Home() {
 
             <input
               value={form.roll}
-              placeholder="Roll"
+              placeholder="Roll Number"
               className="input-box"
               onChange={(e) =>
                 setForm({ ...form, roll: e.target.value })
@@ -80,7 +90,7 @@ export default function Home() {
 
             <input
               value={form.problem}
-              placeholder="Problem"
+              placeholder="Problem Title"
               className="input-box"
               onChange={(e) =>
                 setForm({ ...form, problem: e.target.value })
@@ -110,15 +120,15 @@ export default function Home() {
             disabled={loading}
             className="run-btn"
           >
-            {loading ? "Running..." : "Run Code"}
+            {loading ? "Evaluating..." : "Submit & Evaluate"}
           </button>
 
           {/* RESULT */}
           {result && (
             <div className="result-card">
-              
+
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-gray-300 font-medium">Result</h2>
+                <h2 className="text-gray-300 font-medium">Evaluation Result</h2>
 
                 <div
                   className={`score-badge
