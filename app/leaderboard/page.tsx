@@ -4,211 +4,453 @@ import { useEffect, useState } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5678";
 
-export default function TeacherDashboard() {
-  const [data, setData] = useState<any>(null);
+export default function Leaderboard() {
+  const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState("");
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchLeaderboard = async () => {
       try {
-        const res = await fetch(`${API_URL}/webhook/teacher-dashboard`);
-
+        const res = await fetch(`${API_URL}/webhook/leaderboard`, { cache: "no-store" });
         if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
-
         const json = await res.json();
-        setData(json);
+        setData(Array.isArray(json) ? json : []);
       } catch (err) {
-        console.error("Error fetching data:", err);
-        setError("Failed to load dashboard. Make sure the backend is running.");
+        setError("Failed to load leaderboard.");
       } finally {
         setLoading(false);
       }
     };
-
-    fetchData();
+    fetchLeaderboard();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0f1117] flex items-center justify-center text-gray-400">
-        Loading dashboard...
-      </div>
-    );
-  }
+  const filtered = data.filter(d =>
+    d.student?.toLowerCase().includes(filter.toLowerCase())
+  );
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#0f1117] flex items-center justify-center">
-        <div className="p-6 bg-red-900/30 border border-red-800 rounded-xl text-red-400 text-sm max-w-md text-center">
-          {error}
-        </div>
-      </div>
-    );
-  }
+  const getRankIcon = (rank: number) => {
+    if (rank === 1) return "🥇";
+    if (rank === 2) return "🥈";
+    if (rank === 3) return "🥉";
+    return `#${rank}`;
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 8) return "#00b8a3";
+    if (score >= 5) return "#ffc01e";
+    return "#ef4743";
+  };
+
+  const getScoreBar = (score: number) => {
+    return `${(score / 10) * 100}%`;
+  };
 
   return (
-    <div className="min-h-screen bg-[#0f1117] text-white">
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #0a0a0a; color: #eff1f6; font-family: 'Outfit', sans-serif; min-height: 100vh; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
 
-      {/* HEADER */}
-      <div className="w-full border-b border-gray-800 px-8 py-5 flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <a href="/" className="text-gray-400 hover:text-white transition text-sm">← Back</a>
-          <h1 className="text-xl font-semibold tracking-tight">
-            Teacher Dashboard
-          </h1>
+        .navbar {
+          height: 44px;
+          background: #1a1a1a;
+          border-bottom: 1px solid #2a2a2a;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 24px;
+          position: sticky;
+          top: 0;
+          z-index: 100;
+        }
+
+        .nav-logo {
+          font-family: 'JetBrains Mono', monospace;
+          font-weight: 600;
+          font-size: 16px;
+          color: #ffa116;
+          text-decoration: none;
+        }
+
+        .nav-logo span { color: #eff1f6; }
+
+        .nav-links { display: flex; align-items: center; gap: 4px; }
+
+        .nav-link {
+          padding: 4px 12px;
+          border-radius: 4px;
+          font-size: 13px;
+          color: #eff1f6;
+          text-decoration: none;
+          transition: background 0.15s;
+        }
+
+        .nav-link:hover { background: #2a2a2a; }
+        .nav-link.active { color: #ffa116; }
+
+        .page-wrap {
+          max-width: 900px;
+          margin: 0 auto;
+          padding: 32px 24px;
+        }
+
+        .page-header {
+          margin-bottom: 28px;
+        }
+
+        .page-title {
+          font-size: 24px;
+          font-weight: 700;
+          color: #eff1f6;
+          margin-bottom: 4px;
+        }
+
+        .page-subtitle {
+          font-size: 14px;
+          color: #6b6b6b;
+        }
+
+        .top3-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 28px;
+        }
+
+        .top-card {
+          background: #1a1a1a;
+          border: 1px solid #2a2a2a;
+          border-radius: 10px;
+          padding: 20px 16px;
+          text-align: center;
+          position: relative;
+          transition: border-color 0.2s;
+        }
+
+        .top-card:hover { border-color: #3a3a3a; }
+
+        .top-card.rank1 {
+          border-color: #ffa11640;
+          background: linear-gradient(160deg, #1a1a1a 0%, #1f1800 100%);
+          order: 2;
+        }
+
+        .top-card.rank2 { order: 1; }
+        .top-card.rank3 { order: 3; }
+
+        .rank-medal {
+          font-size: 28px;
+          margin-bottom: 10px;
+          display: block;
+        }
+
+        .rank1 .rank-medal { font-size: 36px; }
+
+        .top-name {
+          font-size: 15px;
+          font-weight: 600;
+          color: #eff1f6;
+          margin-bottom: 6px;
+          text-transform: capitalize;
+        }
+
+        .top-score {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 22px;
+          font-weight: 700;
+        }
+
+        .rank1 .top-score { font-size: 28px; color: #ffa116; }
+
+        .score-bar-wrap {
+          margin-top: 10px;
+          height: 3px;
+          background: #2a2a2a;
+          border-radius: 2px;
+          overflow: hidden;
+        }
+
+        .score-bar-fill {
+          height: 100%;
+          border-radius: 2px;
+          transition: width 0.8s ease;
+        }
+
+        .controls {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 12px;
+          gap: 12px;
+        }
+
+        .search-input {
+          flex: 1;
+          background: #1a1a1a;
+          border: 1px solid #2a2a2a;
+          border-radius: 6px;
+          padding: 7px 14px 7px 36px;
+          font-size: 13px;
+          color: #eff1f6;
+          font-family: 'Outfit', sans-serif;
+          outline: none;
+          transition: border-color 0.15s;
+          position: relative;
+        }
+
+        .search-input:focus { border-color: #ffa116; }
+        .search-input::placeholder { color: #3a3a3a; }
+
+        .search-wrap {
+          position: relative;
+          flex: 1;
+          max-width: 280px;
+        }
+
+        .search-icon {
+          position: absolute;
+          left: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #3a3a3a;
+          pointer-events: none;
+        }
+
+        .count-badge {
+          font-size: 13px;
+          color: #6b6b6b;
+          background: #1a1a1a;
+          border: 1px solid #2a2a2a;
+          border-radius: 6px;
+          padding: 6px 14px;
+          font-family: 'JetBrains Mono', monospace;
+        }
+
+        .table-wrap {
+          background: #1a1a1a;
+          border: 1px solid #2a2a2a;
+          border-radius: 10px;
+          overflow: hidden;
+        }
+
+        .table-head {
+          display: grid;
+          grid-template-columns: 64px 1fr 120px 120px;
+          padding: 10px 16px;
+          border-bottom: 1px solid #2a2a2a;
+          background: #111;
+        }
+
+        .th {
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: #4a4a4a;
+        }
+
+        .th:last-child { text-align: right; }
+
+        .table-row {
+          display: grid;
+          grid-template-columns: 64px 1fr 120px 120px;
+          padding: 12px 16px;
+          border-bottom: 1px solid #1f1f1f;
+          align-items: center;
+          transition: background 0.1s;
+          cursor: default;
+        }
+
+        .table-row:hover { background: #1f1f1f; }
+        .table-row:last-child { border-bottom: none; }
+
+        .rank-cell {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 13px;
+          font-weight: 600;
+          color: #6b6b6b;
+        }
+
+        .name-cell {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .avatar {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          background: #2a2a2a;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: 600;
+          color: #ffa116;
+          text-transform: uppercase;
+          flex-shrink: 0;
+        }
+
+        .student-name {
+          font-size: 14px;
+          font-weight: 500;
+          color: #eff1f6;
+          text-transform: capitalize;
+        }
+
+        .submissions-cell {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 13px;
+          color: #6b6b6b;
+        }
+
+        .score-cell {
+          text-align: right;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
+        }
+
+        .score-text {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 14px;
+          font-weight: 700;
+        }
+
+        .mini-bar {
+          width: 60px;
+          height: 2px;
+          background: #2a2a2a;
+          border-radius: 1px;
+          overflow: hidden;
+        }
+
+        .mini-bar-fill {
+          height: 100%;
+          border-radius: 1px;
+        }
+
+        .empty-state {
+          text-align: center;
+          padding: 60px 20px;
+          color: #3a3a3a;
+          font-size: 14px;
+        }
+
+        .loading-row {
+          padding: 40px;
+          text-align: center;
+          color: #3a3a3a;
+          font-size: 13px;
+        }
+      `}</style>
+
+      <nav className="navbar">
+        <a href="/" className="nav-logo">{"<"}code<span>{"Eval/>"}</span></a>
+        <div className="nav-links">
+          <a href="/" className="nav-link">Problems</a>
+          <a href="/leaderboard" className="nav-link active">Leaderboard</a>
+          <a href="/teacher" className="nav-link">Dashboard</a>
         </div>
-        <span className="text-sm text-gray-400">
-          Overview & Analytics
-        </span>
-      </div>
+        <div style={{ width: 80 }} />
+      </nav>
 
-      <div className="max-w-6xl mx-auto px-6 py-10">
-
-        {/* TOP PERFORMER */}
-        {data?.topPerformer && (
-          <div className="mb-8 p-6 bg-[#15171c] border border-gray-800 rounded-xl">
-            <p className="text-sm text-gray-400 mb-2">Top Performer</p>
-
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-lg font-semibold capitalize">
-                  {data.topPerformer.student_name}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {data.topPerformer.submissions} submissions
-                </p>
-              </div>
-
-              <div className="text-green-400 text-xl font-bold">
-                {data.topPerformer.avgScore} / 10
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STATS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
-          <div className="stat-card">
-            <p className="stat-title">Total Students</p>
-            <p className="stat-value">{data?.meta?.totalStudents ?? 0}</p>
-          </div>
-
-          <div className="stat-card">
-            <p className="stat-title">Average Score</p>
-            <p className="stat-value">{data?.meta?.avgScore ?? 0}</p>
-          </div>
-
-          <div className="stat-card">
-            <p className="stat-title">Total Submissions</p>
-            <p className="stat-value">{data?.meta?.totalSubmissions ?? 0}</p>
-          </div>
-
+      <div className="page-wrap">
+        <div className="page-header">
+          <div className="page-title">Leaderboard</div>
+          <div className="page-subtitle">{data.length} students ranked by average score</div>
         </div>
 
-        {/* PROBLEM INSIGHTS */}
-        {data?.problemStats?.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-sm text-gray-400 mb-4">Problem Insights</h2>
-
-            <div className="bg-[#15171c] border border-gray-800 rounded-xl">
-              {data.problemStats.map((p: any, i: number) => (
-                <div
-                  key={i}
-                  className="flex justify-between items-center px-6 py-4 border-b border-gray-800"
-                >
-                  <div className="capitalize">{p.problem}</div>
-
-                  <div className="text-gray-400 text-sm">
-                    {p.attempts} attempts
+        {/* TOP 3 PODIUM */}
+        {!loading && data.length >= 3 && (
+          <div className="top3-grid">
+            {[data[1], data[0], data[2]].map((item, i) => {
+              if (!item) return null;
+              const realRank = i === 0 ? 2 : i === 1 ? 1 : 3;
+              const medals = ["🥈", "🥇", "🥉"];
+              return (
+                <div key={i} className={`top-card rank${realRank}`}>
+                  <span className="rank-medal">{medals[i]}</span>
+                  <div className="top-name">{item.student}</div>
+                  <div className="top-score" style={{ color: getScoreColor(item.avg_score) }}>
+                    {item.avg_score}
                   </div>
-
-                  <div className="flex items-center gap-4">
-
-                    <span
-                      className={`font-semibold ${
-                        p.avgScore >= 8
-                          ? "text-green-400"
-                          : p.avgScore >= 6
-                          ? "text-yellow-400"
-                          : "text-red-400"
-                      }`}
-                    >
-                      {p.avgScore}
-                    </span>
-
-                    <span
-                      className={`text-xs px-2 py-1 rounded ${
-                        p.difficulty === "Easy"
-                          ? "bg-green-900 text-green-400"
-                          : p.difficulty === "Medium"
-                          ? "bg-yellow-900 text-yellow-400"
-                          : "bg-red-900 text-red-400"
-                      }`}
-                    >
-                      {p.difficulty}
-                    </span>
-
+                  <div className="score-bar-wrap">
+                    <div
+                      className="score-bar-fill"
+                      style={{ width: getScoreBar(item.avg_score), background: getScoreColor(item.avg_score) }}
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         )}
 
-        {/* LEADERBOARD TABLE */}
-        {data?.leaderboard?.length > 0 && (
-          <div className="bg-[#15171c] border border-gray-800 rounded-xl">
+        {/* CONTROLS */}
+        <div className="controls">
+          <div className="search-wrap">
+            <svg className="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            <input
+              className="search-input"
+              placeholder="Search students..."
+              value={filter}
+              onChange={e => setFilter(e.target.value)}
+            />
+          </div>
+          <div className="count-badge">{filtered.length} results</div>
+        </div>
 
-            <div className="grid grid-cols-4 px-6 py-4 text-xs uppercase tracking-wider text-gray-400 border-b border-gray-800">
-              <div>Student</div>
-              <div>Submissions</div>
-              <div>Avg Score</div>
-              <div className="text-right">Status</div>
-            </div>
+        {/* TABLE */}
+        <div className="table-wrap">
+          <div className="table-head">
+            <div className="th">Rank</div>
+            <div className="th">Student</div>
+            <div className="th">Submissions</div>
+            <div className="th" style={{ textAlign: "right" }}>Avg Score</div>
+          </div>
 
-            {data.leaderboard.map((item: any) => (
-              <div
-                key={item.rank}
-                className="grid grid-cols-4 px-6 py-4 border-b border-gray-800 hover:bg-[#1a1d23] transition"
-              >
-                <div className="capitalize">{item.student_name}</div>
+          {loading && <div className="loading-row">Loading rankings...</div>}
 
-                <div>{item.submissions} submissions</div>
+          {!loading && filtered.length === 0 && (
+            <div className="empty-state">No students found</div>
+          )}
 
-                <div
-                  className={`font-semibold ${
-                    item.avgScore >= 9
-                      ? "text-green-400"
-                      : item.avgScore >= 7
-                      ? "text-yellow-400"
-                      : "text-red-400"
-                  }`}
-                >
-                  {item.avgScore}
-                </div>
-
-                <div
-                  className={`text-right ${
-                    item.status === "Excellent"
-                      ? "text-green-500"
-                      : item.status === "Good"
-                      ? "text-green-400"
-                      : item.status === "Average"
-                      ? "text-yellow-500"
-                      : "text-red-500"
-                  }`}
-                >
-                  {item.status}
+          {!loading && filtered.map((item, index) => (
+            <div key={index} className="table-row">
+              <div className="rank-cell">{getRankIcon(index + 1)}</div>
+              <div className="name-cell">
+                <div className="avatar">{item.student?.[0] || "?"}</div>
+                <div className="student-name">{item.student}</div>
+              </div>
+              <div className="submissions-cell">
+                {item.submissions ?? "—"} submissions
+              </div>
+              <div className="score-cell">
+                <span className="score-text" style={{ color: getScoreColor(item.avg_score) }}>
+                  {item.avg_score}
+                </span>
+                <div className="mini-bar">
+                  <div
+                    className="mini-bar-fill"
+                    style={{ width: getScoreBar(item.avg_score), background: getScoreColor(item.avg_score) }}
+                  />
                 </div>
               </div>
-            ))}
-
-          </div>
-        )}
-
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
