@@ -15,8 +15,9 @@ export default function TeacherDashboard() {
 
         if (!res.ok) throw new Error("API failed");
 
-        const json = await res.json();
-        setData(json);
+const json = await res.json();
+const parsed = Array.isArray(json) ? json[0] : json;
+setData(parsed);
       } catch (err) {
         console.error("Error fetching data:", err);
       } finally {
