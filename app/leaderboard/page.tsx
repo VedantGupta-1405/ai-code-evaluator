@@ -15,9 +15,19 @@ export default function Leaderboard() {
       try {
         const res = await fetch(`${API_URL}/webhook/leaderboard`, { cache: "no-store" });
         if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
-        const json = await res.json();
-        setData(Array.isArray(json) ? json : []);
+        const text = await res.text();
+        console.log("Raw leaderboard response:", text);
+        let json = JSON.parse(text);
+        // n8n can wrap each item as {json: {...}} — unwrap if needed
+        if (Array.isArray(json)) {
+          json = json.map((item: any) => item.json ? item.json : item);
+        } else {
+          json = [];
+        }
+        console.log("Parsed leaderboard:", json);
+        setData(json);
       } catch (err) {
+        console.error("Leaderboard error:", err);
         setError("Failed to load leaderboard.");
       } finally {
         setLoading(false);
